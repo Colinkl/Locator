@@ -3,18 +3,22 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Android;
-
+using UnityEngine.Events;
 
 public class LocationProvider : MonoBehaviour
 {
     [SerializeField]
     public Text Status;
 
+    public UnityEvent<LocationInfo> OnNewLocationRecieved;
 
+    private LocationService locationService;
 
-    // Start is called before the first frame update
-    IEnumerator Start()
+    private LocationInfo lastLocationInfo;
+
+    public IEnumerator LocationSubRoutine()
     {
+        
         Status.text = "Init";
         Permission.RequestUserPermission(Permission.FineLocation);
         // Check if the user has location service enabled.
@@ -23,14 +27,18 @@ public class LocationProvider : MonoBehaviour
             yield break;
 
         // Starts the location service.
-        Input.location.Start();
+
+        locationService = Input.location;
+
+
+        locationService.Start();
 
         // Waits until the location service initializes
         int maxWait = 20;
-        while (Input.location.status == LocationServiceStatus.Initializing && maxWait > 0)
+        while (locationService.status == LocationServiceStatus.Initializing && maxWait > 0)
         {
-            yield return new WaitForSeconds(1);
             maxWait--;
+            yield return new WaitForSeconds(1);
         }
 
         // If the service didn't initialize in 20 seconds this cancels location service use.
@@ -41,9 +49,9 @@ public class LocationProvider : MonoBehaviour
         }
 
         // If the connection failed this cancels location service use.
-        if (Input.location.status == LocationServiceStatus.Failed)
+        if (locationService.status == LocationServiceStatus.Failed)
         {
-            Status.text =  "Unable to determine device location";
+            Status.text = "Unable to determine device location";
             yield break;
         }
         else
@@ -51,18 +59,23 @@ public class LocationProvider : MonoBehaviour
             while (true)
             {
                 Status.text = $" Location: {Input.location.lastData.latitude} {Input.location.lastData.longitude}  {Input.location.lastData.altitude}  {Input.location.lastData.horizontalAccuracy}  {Input.location.lastData.timestamp} ";
+
+                if (lastLocationInfo.timestamp != locationService.lastData.timestamp)
+                {
+                    lastLocationInfo = locationService.lastData;
+                    OnNewLocationRecieved?.Invoke(lastLocationInfo);
+                }
                 yield return null;
             }
-            
-           
+
         }
 
         // Stops the location service if there is no need to query location updates continuously.
         // Input.location.Stop();
     }
     // Update is called once per frame
-    void Update()
+    void Start()
     {
-
+        StartCoroutine(LocationSubRoutine());
     }
 }
