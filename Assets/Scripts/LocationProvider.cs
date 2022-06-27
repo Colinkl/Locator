@@ -9,7 +9,8 @@ public class LocationProvider : MonoBehaviour
 {
     [SerializeField]
     public Text Status;
-
+    [SerializeField]
+    public Text Accuracy;
     public UnityEvent<LocationInfo> OnNewLocationRecieved;
 
     private LocationService locationService;
@@ -61,7 +62,8 @@ public class LocationProvider : MonoBehaviour
                
                 if (lastLocationInfo.timestamp != locationService.lastData.timestamp)
                 {
-                    Status.text = $" Location: {Input.location.lastData.latitude} {Input.location.lastData.longitude}  {Input.location.lastData.altitude}  {Input.location.lastData.horizontalAccuracy}  {Input.location.lastData.timestamp} ";
+                    Status.text = $" Location: {Input.location.lastData.latitude} {Input.location.lastData.longitude} ";
+                    Accuracy.text = $"Accuracy: {(int)Input.location.lastData.horizontalAccuracy} m";
                     lastLocationInfo = locationService.lastData;
                     OnNewLocationRecieved?.Invoke(lastLocationInfo);
                 }

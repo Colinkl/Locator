@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using Geolocation;
 using Unity.Mathematics;
+using UnityEngine.UI;
+using TMPro;
 
 public class RadarScript : MonoBehaviour
 {
@@ -17,13 +19,19 @@ public class RadarScript : MonoBehaviour
         public float BaseAngle { get; set; }
         public bool IsVisible { get; set; }
         public GameObject sprite { get; set; }
+        public GameObject Item { get; set; }
+        public Color Color { get; set; }
     }
 
     [SerializeField]
     public GameObject Sprite;
-
+    [SerializeField]
+    public GameObject Prefab;
+    [SerializeField]
+    public Text AngleLabel;
     private GameObject _radarPlane;
     private Vector2 _radarLocation;
+    private GameObject _scrollView;
     private float radarSize;
 
     private Quaternion CompasLoc;
@@ -67,22 +75,44 @@ public class RadarScript : MonoBehaviour
         foreach (POI p in _points)
         {
             var dot = new Dot() { POI = p, Coordinate = new Coordinate(p.Coordinates.Latitude, p.Coordinates.Longitude) };
+            dot.Color = new Color(
+                  UnityEngine.Random.Range(0f, 1f),
+                  UnityEngine.Random.Range(0f, 1f),
+                  UnityEngine.Random.Range(0f, 1f)
+                    );
             _dots.Add(dot);
         }
     }
 
     public void CalcDistance()
     {
+        _dots.ForEach(x =>
+        {
+            if (x.Item is not null)
+            {
+                Destroy(x.Item);
+                x.Item = null;
+            }
+        });
         _dots.ForEach(dot =>
         {
             radarSize = _radarPlane.GetComponent<SpriteRenderer>().bounds.max.x;
             dot.Distance = CalcDistanceTo(dot.Coordinate);
             dot.BaseAngle = CalcAngleTo(dot.Coordinate);
+            
             float len = 0.5f * radarSize * (dot.Distance / Scale);
             //float len = 10f;
-            dot.RelPosition = Quaternion.Euler(0,0,dot.BaseAngle) * new Vector3(len,0);
+            dot.RelPosition = Quaternion.Euler(0, 0, dot.BaseAngle) * new Vector3(len, 0);
             if (dot.Distance <= Scale)
             {
+                dot.Item = Instantiate(Prefab, _scrollView.transform);
+                var item = dot.Item.transform.Find("Title").gameObject.GetComponent<TextMeshProUGUI>();
+                item.color = dot.Color;
+                item.text = dot.POI.Name;
+                dot.Item.transform.Find("Rating").gameObject.GetComponent<TextMeshProUGUI>().text = dot.POI.Rating.ToString();
+                dot.Item.transform.Find("Location").gameObject.GetComponent<TextMeshProUGUI>().text = $"{dot.POI.Coordinates.Latitude} {dot.POI.Coordinates.Longitude}";
+                dot.Item.transform.Find("Distance").gameObject.GetComponent<TextMeshProUGUI>().text = $"{(int)dot.Distance} m";
+
                 dot.IsVisible = true;
             }
             else
@@ -117,9 +147,10 @@ public class RadarScript : MonoBehaviour
             {
                 dot.sprite = Instantiate(Sprite, _radarPlane.transform.rotation * dot.RelPosition + _radarPlane.transform.position, Quaternion.identity, _radarPlane.transform);
                 dot.sprite.transform.localScale = new Vector3(1, 1, 1);
+                dot.sprite.GetComponent<SpriteRenderer>().color = dot.Color;
                 dot.sprite.GetComponent<Renderer>().sortingOrder = 1;
             }
-            if (dot.sprite  && dot.IsVisible)
+            if (dot.sprite && dot.IsVisible)
             {
                 dot.sprite.transform.position = _radarPlane.transform.rotation * dot.RelPosition + _radarPlane.transform.position;
             }
@@ -157,6 +188,7 @@ public class RadarScript : MonoBehaviour
 
         _radarPlane = GameObject.Find("Radar");
         _radarLocation = _radarPlane.transform.position;
+        _scrollView = GameObject.Find("Content");
         radarSize = _radarPlane.transform.localScale.x / 2;
     }
 
@@ -167,6 +199,7 @@ public class RadarScript : MonoBehaviour
         while (true)
         {
             CompasLoc = Quaternion.Euler(0, 0, thirdOrder_lowpassFilter(Input.compass.trueHeading, 0.2f));
+            AngleLabel.text = $"Angle: {CompasLoc.z}";
             lastRot = _radarPlane.transform.rotation;
             yield return new WaitForSeconds(0.3f);
         }

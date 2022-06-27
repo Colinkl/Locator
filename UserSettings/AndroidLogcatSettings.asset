@@ -1,9 +1,9 @@
 {
-    "m_SelectedDeviceId": "192.168.31.45:40201",
+    "m_SelectedDeviceId": "192.168.31.45:37397",
     "m_SelectedPackage": {
-        "deviceId": "192.168.31.45:40201",
+        "deviceId": "192.168.31.45:37397",
         "name": "com.DefaultCompany.com.unity.template.mobile2D",
-        "processId": 6777,
+        "processId": 7398,
         "exited": false
     },
     "m_SelectedPriority": 0,
@@ -420,6 +420,48 @@
             "deviceId": "192.168.31.45:40201",
             "name": "com.DefaultCompany.com.unity.template.mobile2D",
             "processId": 6777,
+            "exited": false
+        },
+        {
+            "deviceId": "192.168.31.45:40201",
+            "name": "com.DefaultCompany.com.unity.template.mobile2D",
+            "processId": 16445,
+            "exited": false
+        },
+        {
+            "deviceId": "192.168.31.45:40201",
+            "name": "com.DefaultCompany.com.unity.template.mobile2D",
+            "processId": 18728,
+            "exited": false
+        },
+        {
+            "deviceId": "192.168.31.45:40201",
+            "name": "com.DefaultCompany.com.unity.template.mobile2D",
+            "processId": 19701,
+            "exited": false
+        },
+        {
+            "deviceId": "192.168.31.45:40201",
+            "name": "com.DefaultCompany.com.unity.template.mobile2D",
+            "processId": 22531,
+            "exited": false
+        },
+        {
+            "deviceId": "192.168.31.45:37397",
+            "name": "com.DefaultCompany.com.unity.template.mobile2D",
+            "processId": 1002,
+            "exited": false
+        },
+        {
+            "deviceId": "192.168.31.45:37397",
+            "name": "com.DefaultCompany.com.unity.template.mobile2D",
+            "processId": 6182,
+            "exited": false
+        },
+        {
+            "deviceId": "192.168.31.45:37397",
+            "name": "com.DefaultCompany.com.unity.template.mobile2D",
+            "processId": 7398,
             "exited": false
         }
     ],
