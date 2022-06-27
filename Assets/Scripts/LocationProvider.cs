@@ -58,10 +58,10 @@ public class LocationProvider : MonoBehaviour
         {
             while (true)
             {
-                Status.text = $" Location: {Input.location.lastData.latitude} {Input.location.lastData.longitude}  {Input.location.lastData.altitude}  {Input.location.lastData.horizontalAccuracy}  {Input.location.lastData.timestamp} ";
-
+               
                 if (lastLocationInfo.timestamp != locationService.lastData.timestamp)
                 {
+                    Status.text = $" Location: {Input.location.lastData.latitude} {Input.location.lastData.longitude}  {Input.location.lastData.altitude}  {Input.location.lastData.horizontalAccuracy}  {Input.location.lastData.timestamp} ";
                     lastLocationInfo = locationService.lastData;
                     OnNewLocationRecieved?.Invoke(lastLocationInfo);
                 }
@@ -74,8 +74,5 @@ public class LocationProvider : MonoBehaviour
         // Input.location.Stop();
     }
     // Update is called once per frame
-    void Start()
-    {
-        StartCoroutine(LocationSubRoutine());
-    }
+
 }

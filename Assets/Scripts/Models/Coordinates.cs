@@ -8,7 +8,7 @@ namespace Assets.Scripts.Models
 {
     public class Coordinates
     {
-        public Coordinates(float longitude, float latitude)
+        public Coordinates(float latitude, float longitude)
         {
             Latitude = latitude;
             Longitude = longitude;

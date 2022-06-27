@@ -12,7 +12,7 @@ public class RadarScript : MonoBehaviour
     {
         public POI POI { get; set; }
         public float Distance { get; set; }
-        public Vector2 RelPosition { get; set; }
+        public Vector3 RelPosition { get; set; }
         public Coordinate Coordinate { get; set; }
         public float BaseAngle { get; set; }
         public bool IsVisible { get; set; }
@@ -24,7 +24,9 @@ public class RadarScript : MonoBehaviour
 
     private GameObject _radarPlane;
     private Vector2 _radarLocation;
-    private float _radarSize;
+    private float radarSize;
+
+    private Quaternion CompasLoc;
 
     private List<POI> _points;
     public List<POI> Points
@@ -36,10 +38,10 @@ public class RadarScript : MonoBehaviour
         set
         {
             _points = value;
-            poiInit();
+            PoiInit();
         }
     }
-    private Coordinate _currentCoordinate;
+    public Coordinate CurrentCoordinate { get; set; }
     private List<Dot> _dots;
     public float Scale { get; private set; } = 500;
     public void Startup(List<POI> points)
@@ -49,16 +51,16 @@ public class RadarScript : MonoBehaviour
     }
     private float CalcDistanceTo(Coordinate point)
     {
-        float distance = (float)GeoCalculator.GetDistance(_currentCoordinate, point, 5, DistanceUnit.Meters);
+        float distance = (float)GeoCalculator.GetDistance(CurrentCoordinate, point, 5, DistanceUnit.Meters);
         return distance;
     }
 
     private float CalcAngleTo(Coordinate point)
     {
-        float angle = (float)GeoCalculator.GetBearing(_currentCoordinate, point);
+        float angle = (float)GeoCalculator.GetBearing(CurrentCoordinate, point);
         return angle;
     }
-    private void poiInit()
+    public void PoiInit()
     {
         _dots = new List<Dot>();
 
@@ -69,13 +71,16 @@ public class RadarScript : MonoBehaviour
         }
     }
 
-    private void CalcDistance()
+    public void CalcDistance()
     {
         _dots.ForEach(dot =>
         {
+            radarSize = _radarPlane.GetComponent<SpriteRenderer>().bounds.max.x;
             dot.Distance = CalcDistanceTo(dot.Coordinate);
             dot.BaseAngle = CalcAngleTo(dot.Coordinate);
-            dot.RelPosition = _radarSize * dot.Distance * new Vector2(MathF.Cos(dot.BaseAngle), Mathf.Sin(dot.BaseAngle)) / Scale;
+            float len = 0.5f * radarSize * (dot.Distance / Scale);
+            //float len = 10f;
+            dot.RelPosition = Quaternion.Euler(0,0,dot.BaseAngle) * new Vector3(len,0);
             if (dot.Distance <= Scale)
             {
                 dot.IsVisible = true;
@@ -88,27 +93,20 @@ public class RadarScript : MonoBehaviour
 
     }
 
+
+
     public void OnCoordsUpdate(LocationInfo locationInfo)
     {
-        //_currentCoordinate = new Coordinate(locationInfo.latitude, locationInfo.longitude);
-        //CalcDistance();
-        //ShowDots();
+        CurrentCoordinate = new Coordinate(locationInfo.latitude, locationInfo.longitude);
+        CalcDistance();
+        ShowDots();
     }
 
     public void UpdateScale(float scale)
     {
         Scale = scale;
-        _dots.ForEach(dot =>
-        {
-            if (dot.Distance <= Scale)
-            {
-                dot.IsVisible = true;
-            }
-            else
-            {
-                dot.IsVisible = false;
-            }
-        });
+        CalcDistance();
+        ShowDots();
     }
     [ContextMenu("ShowDots")]
     public void ShowDots()
@@ -117,24 +115,23 @@ public class RadarScript : MonoBehaviour
         {
             if (dot.sprite is null && dot.IsVisible)
             {
-                Vector3 loc = _radarLocation + dot.RelPosition;
-                dot.sprite = Instantiate(Sprite, loc, Quaternion.identity, _radarPlane.transform);
+                dot.sprite = Instantiate(Sprite, _radarPlane.transform.rotation * dot.RelPosition + _radarPlane.transform.position, Quaternion.identity, _radarPlane.transform);
+                dot.sprite.transform.localScale = new Vector3(1, 1, 1);
+                dot.sprite.GetComponent<Renderer>().sortingOrder = 1;
             }
-            if (dot.sprite is not null && dot.IsVisible)
+            if (dot.sprite  && dot.IsVisible)
             {
-                Vector3 loc = _radarLocation + dot.RelPosition;
-                dot.sprite.transform.position = loc;
+                dot.sprite.transform.position = _radarPlane.transform.rotation * dot.RelPosition + _radarPlane.transform.position;
             }
             if (dot.sprite is not null && !dot.IsVisible)
             {
-                Vector3 loc = _radarLocation + dot.RelPosition;
                 Destroy(dot.sprite);
+                dot.sprite = null;
             }
         });
     }
-    private double lastTimeStamp;
 
-    float Yp; 
+    float Yp;
     float Ypp;
     float Yppp;
     float Xp;
@@ -158,27 +155,45 @@ public class RadarScript : MonoBehaviour
     {
         Input.compass.enabled = true;
 
-        lastTimeStamp = 10;
-        _radarLocation = gameObject.transform.position;
-        _radarSize = gameObject.transform.localScale.x / 2;
         _radarPlane = GameObject.Find("Radar");
-        StartCoroutine(StartCompass());
+        _radarLocation = _radarPlane.transform.position;
+        radarSize = _radarPlane.transform.localScale.x / 2;
     }
 
-    IEnumerator StartCompass()
+
+
+    public IEnumerator StartCompass()
     {
-        _radarPlane.transform.rotation = Quaternion.Euler(0, 0, thirdOrder_lowpassFilter(Input.compass.trueHeading, 0.6f));
-        yield return new WaitForSeconds(0.5f);
+        while (true)
+        {
+            CompasLoc = Quaternion.Euler(0, 0, thirdOrder_lowpassFilter(Input.compass.trueHeading, 0.2f));
+            lastRot = _radarPlane.transform.rotation;
+            yield return new WaitForSeconds(0.3f);
+        }
+
     }
+
+    float WhereTime = 0;
+    float NeedTime = 0.3f;
+    private Quaternion lastRot;
+
     public void Update()
     {
-       
-
+        if (lastRot.eulerAngles.z != CompasLoc.z)
+        {
+            if (WhereTime < NeedTime)
+                _radarPlane.transform.rotation = Quaternion.Lerp(lastRot, CompasLoc, Mathf.Clamp((WhereTime += Time.deltaTime) / NeedTime, 0, 1));
+            if (WhereTime >= NeedTime)
+                WhereTime = 0;
+        }
 
     }
-
-    // Start is called before the first frame update
-
 
 
 }
+
+// Start is called before the first frame update
+
+
+
+
